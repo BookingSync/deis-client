@@ -34,10 +34,8 @@ module Deis
     format :json
     headers 'Accept' => 'application/json'
 
-    API_PATH = '/v1'
-
-    def initialize(deis_url)
-      @base_uri = deis_url + API_PATH
+    def initialize(deis_url, version)
+      @base_uri = deis_url + "/#{version}"
       # self.class.base_uri (deis_url + API_PATH)
     end
 
@@ -82,20 +80,20 @@ module Deis
       release: [:get, '/apps/:app/releases/:release/'],
       rollback_release: [:post, '/apps/:app/releases/rollback/'],
       create_cert: [:post, '/certs/'],
-      delete_cert: [:delete, '/certs/:domain'],
+      delete_cert: [:delete, '/certs/:name'],
       certs: [:get, '/certs'],
-      cert: [:get, '/certs/:domain']
+      cert: [:get, '/certs/:name']
     }
 
-    def initialize(deis_url, username, password)
-      @http = Deis::ApiWrapper.new deis_url
+    def initialize(deis_url, username, password, api_version=:v2)
+      @http = Deis::ApiWrapper.new deis_url, api_version
       @headers = {'Content-Type' => 'application/json'}
       @auth = { username: username, password: password }
     end
 
     def login
       verb, path = @@methods[:login]
-      response = @http.public_send(verb, path, body: @auth)
+      response = @http.public_send(verb, path, body: @auth.to_json, headers: @headers)
 
       raise AuthorizationError.new unless response.code == 200
 
@@ -207,24 +205,22 @@ module Deis
       perform :rollback_release, { app: app_id }, release: release
     end
 
-    def create_cert(certificate, key, name = nil)
-      if name.nil?
-        perform :create_cert, { }, { certificate: certificate, key: key }
-      else
-        perform :create_cert, { }, { certificate: certificate, key: key, common_name: name }
-      end
+    def create_cert(certificate, key, name, common_name = nil)
+      options = { certificate: certificate, key: key, name: name }
+      options[:common_name] = common_name if common_name.present?
+      perform :create_cert, { }, options
     end
 
-    def delete_cert(domain)
-      perform :delete_cert, { domain: domain }
+    def delete_cert(name)
+      perform :delete_cert, { name: name }
     end
 
     def certs
       perform :certs
     end
 
-    def cert(domain)
-      perform :cert, { domain: domain }
+    def cert(name)
+      perform :cert, { name: name }
     end
 
     protected
@@ -243,7 +239,8 @@ module Deis
       }
 
       begin
-        handle @http.public_send(verb, path, options)
+        response = @http.public_send(verb, path, options)
+        handle response
       rescue AuthorizationError => e
         raise e unless try_twice
         login
