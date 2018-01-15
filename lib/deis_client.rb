@@ -225,7 +225,7 @@ module Deis
     end
 
     def attach_domain_to_cert(name, domain)
-      perform :cert, { name: name }, { domain: domain }
+      perform :attach_domain_to_cert, { name: name }, { domain: domain }
     end
 
     protected
