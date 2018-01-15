@@ -82,7 +82,8 @@ module Deis
       create_cert: [:post, '/certs/'],
       delete_cert: [:delete, '/certs/:name'],
       certs: [:get, '/certs'],
-      cert: [:get, '/certs/:name']
+      cert: [:get, '/certs/:name'],
+      attach_domain_to_cert: [:post, '/certs/:name/domain/']
     }
 
     def initialize(deis_url, username, password, api_version=:v2)
@@ -206,9 +207,9 @@ module Deis
     end
 
     def create_cert(certificate, key, name, common_name = nil)
-      options = { certificate: certificate, key: key, name: name }
-      options[:common_name] = common_name if common_name.present?
-      perform :create_cert, { }, options
+      body = { certificate: certificate, key: key, name: name }
+      body[:common_name] = common_name if common_name.present?
+      perform :create_cert, { }, body
     end
 
     def delete_cert(name)
@@ -221,6 +222,10 @@ module Deis
 
     def cert(name)
       perform :cert, { name: name }
+    end
+
+    def attach_domain_to_cert(name, domain)
+      perform :cert, { name: name }, { domain: domain }
     end
 
     protected
