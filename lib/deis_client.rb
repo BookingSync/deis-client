@@ -86,10 +86,11 @@ module Deis
       attach_domain_to_cert: [:post, '/certs/:name/domain/']
     }
 
-    def initialize(deis_url, username, password, api_version=:v2)
+    def initialize(deis_url:, token: nil, username: nil, password: nil, api_version: :v2)
       @http = Deis::ApiWrapper.new deis_url, api_version
       @headers = {'Content-Type' => 'application/json'}
       @auth = { username: username, password: password }
+      @token = token
     end
 
     def login
