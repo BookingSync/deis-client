@@ -83,14 +83,17 @@ module Deis
       delete_cert: [:delete, '/certs/:name'],
       certs: [:get, '/certs'],
       cert: [:get, '/certs/:name'],
-      attach_domain_to_cert: [:post, '/certs/:name/domain/']
+      attach_domain_to_cert: [:post, '/certs/:name/domain/'],
+      remove_domain_from_cert: [:delete, '/certs/:name/domain/:domain']
     }
 
     def initialize(deis_url:, token: nil, username: nil, password: nil, api_version: :v2)
       @http = Deis::ApiWrapper.new deis_url, api_version
       @headers = {'Content-Type' => 'application/json'}
       @auth = { username: username, password: password }
-      @token = token
+      if @token = token
+        @headers['Authorization'] = "token #{@token}"
+      end
     end
 
     def login
@@ -227,6 +230,10 @@ module Deis
 
     def attach_domain_to_cert(name, domain)
       perform :attach_domain_to_cert, { name: name }, { domain: domain }
+    end
+
+    def remove_domain_from_cert(name, domain)
+      perform :remove_domain_from_cert, { name: name, domain: domain }
     end
 
     protected
